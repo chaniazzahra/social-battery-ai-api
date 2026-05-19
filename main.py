@@ -219,23 +219,23 @@ def generate_ai_insight(ai_payload):
 
     if battery_status == "HIGH":
         return (
-            f"Hi! 🍯🧸 Energi sosialmu terlihat sangat baik hari ini. Walaupun ada {total_events} agenda "
+            f"🍯🧸 Energi sosialmu terlihat sangat baik hari ini. Walaupun ada {total_events} agenda "
             f"({total_duration} menit) hari ini, kamu terlihat punya cukup energi untuk menjalani semuanya dengan nyaman. "
             f"Semoga harimu menyenangkan, ya! 🤎✨"
         )
 
     if battery_status == "MEDIUM":
         return (
-            f"Hi! ☕🎧 Energi sosialmu sedang berada di titik tengah nih. Hari ini kamu memiliki {total_events} kegiatan "
+            f" ☕🎧 Energi sosialmu sedang berada di titik tengah nih. Hari ini kamu memiliki {total_events} kegiatan "
             f"({total_duration} menit) yang mengisi harimu. Wajar kalau mulai terasa sedikit lelah, "
             f"tapi tenang saja, kamu punya kendali penuh untuk menyisipkan jeda dan memulihkan diri. 🤎🪴"
         )
 
     return (
-        f"Hi! 🕯️📖 Sepertinya energi sosialmu sedang butuh diisi ulang. Dengan {total_events} agenda "
+        f"🕯️📖 Sepertinya energi sosialmu sedang butuh diisi ulang. Dengan {total_events} agenda "
         f"yang memakan waktu {total_duration} menit hari ini, sangat wajar kalau kamu merasa kewalahan. "
-        f"Nggak apa-apa banget lho kalau kamu mau istirahat sebentar. "
-        f"Kamu sudah melakukan yang terbaik, jadi luangkan waktu buat recharge energimu dulu yaa. 🤎🛋️"
+        f"Tapi, nggak apa-apa banget lho kalau kamu mau istirahat sebentar. "
+        f"Kamu sudah melakukan yang terbaik untuk hari ini, jadi luangkan waktumu untuk recharge energimu terlebih dahulu yaa. 🤎🛋️"
     )
 
 
@@ -248,10 +248,10 @@ def generate_ai_score_explanation(ai_payload):
     social_intensity = float(ai_payload["socialIntensityScore"])
 
     return (
-        f"Catatan hari ini menunjukkan energi sosialmu ada di skor {battery_score:.2f}/100 ({battery_status}). "
-        f"Dengan {total_events} kegiatanmu ({total_duration} menit) dan tingkat interaksi di level {social_intensity:.2f}, "
-        f"nggak heran kalau perlahan-lahan bateraimu mulai berkurang. "
-        f"Jangan lupa dengarkan tubuhmu ya, mengambil waktu buat istirahat itu selalu diperbolehkan kok. 🧸🤎"
+        f"Catatan hari ini menunjukkan energi sosialmu berada [pada skor {battery_score:.2f}/100 ({battery_status}). "
+        f"Dengan {total_events} kegiatanmu yang berdurasi ({total_duration} menit) dan tingkat interaksi di level {social_intensity:.2f}, "
+        f"Catatan ini menjadi rekapan kecil dari rutinitas sosialmu hari ini. "
+        f"Bagaimanapun kondisimu saat ini, pastikan kamu tetap nyaman dan mengambil jeda sejenak yaa. 🧸🤎"
     )
 
 
@@ -273,7 +273,7 @@ def generate_recovery_suggestion_from_strategy(ai_payload, recovery_strategy):
                 f"Energi sosialmu masih terjaga dengan baik! Yuk, beri dirimu hadiah istirahat ringan "
                 f"di sela-sela waktu {start}–{end} setelah {best_slot['afterEvent']}. "
                 f"Jeda sekitar 15 menit ini sangat berarti agar kamu punya ketenangan penuh "
-                f"saat menyapa {best_slot['beforeEvent']} nanti. ☕🎧"
+                f"untuk menghadapi aktivitas  {best_slot['beforeEvent']} nanti. ☕🎧"
             )
 
         return (
@@ -295,13 +295,13 @@ def generate_recovery_suggestion_from_strategy(ai_payload, recovery_strategy):
             )
 
         return (
-            "Saat ini energi sosialmu sedang sangat terbatas. 🕯️🤎 Ini adalah alarm manis dari tubuhmu "
-            "untuk beristirahat. Yuk, kurangi interaksi sosial yang tidak mendesak, "
+            "Saat ini energi sosialmu sedang sangat terbatas. 🕯️🤎 "
+            "Yuk, kurangi interaksi sosial yang tidak mendesak, "
             "jauhkan diri dari notifikasi sejenak, dan prioritaskan ketenanganmu hari ini. 🛌💤"
         )
 
     return (
-        "Jangan lupa untuk selalu menyelipkan senyum dan jeda kecil di antara aktivitasmu, "
+        "Jangan lupa untuk selalu menyelipkan senyum dan jeda kecil di antara aktivitasmu ya, "
         "agar energi baikmu slalu terjaga. 🍯🧸"
     )
 
