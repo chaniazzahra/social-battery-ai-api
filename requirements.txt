@@ -1,8 +1,8 @@
 fastapi
-uvicorn[standard]
-tensorflow-cpu
+uvicorn
 pandas
 numpy
 scikit-learn
 joblib
-pydantic
+tensorflow==2.21.0
+keras==3.14.1
