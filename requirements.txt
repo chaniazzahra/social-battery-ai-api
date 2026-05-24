@@ -1,8 +1,10 @@
 fastapi
 uvicorn
+tensorflow==2.21.0
+scikit-learn
 pandas
 numpy
-scikit-learn
 joblib
-tensorflow==2.21.0
+pydantic
+python-multipart
 keras==3.14.1
