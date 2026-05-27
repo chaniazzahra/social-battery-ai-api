@@ -625,6 +625,7 @@ RECOVERY_SUGGESTION_HIGH_NO_SLOT = [
         f"{get_light_recovery_activities()}. 🌸"
     ),
 ]
+RECOVERY_SUGGESTION_NO_SLOT = RECOVERY_SUGGESTION_HIGH_NO_SLOT
 
 
 
