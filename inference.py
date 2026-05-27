@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
+from custom_objects import FeatureGateLayer, CustomSparseCategoricalLoss
+
 from response_generator import (
     get_ai_insight,
     get_ai_score_explanation,
@@ -17,21 +19,31 @@ ARTIFACT_DIR = "artifacts"
 MODEL_PATH = os.path.join(ARTIFACT_DIR, "recovery_strategy_model.keras")
 SCALER_PATH = os.path.join(ARTIFACT_DIR, "recovery_scaler.pkl")
 FEATURE_COLS_PATH = os.path.join(ARTIFACT_DIR, "feature_cols.json")
-LABEL_CLASSES_PATH = os.path.join(ARTIFACT_DIR, "label_classes.json")
+ID_TO_CLASS_PATH = os.path.join(ARTIFACT_DIR, "id_to_class.json")
 
 
-model = tf.keras.models.load_model(MODEL_PATH)
+model = tf.keras.models.load_model(
+    MODEL_PATH,
+    custom_objects={
+        "FeatureGateLayer": FeatureGateLayer,
+        "CustomSparseCategoricalLoss": CustomSparseCategoricalLoss,
+    },
+    compile=False,
+)
+
 scaler = joblib.load(SCALER_PATH)
 
 with open(FEATURE_COLS_PATH, "r") as f:
     feature_cols = json.load(f)
 
-with open(LABEL_CLASSES_PATH, "r") as f:
-    label_classes = json.load(f)
+with open(ID_TO_CLASS_PATH, "r") as f:
+    id_to_class_raw = json.load(f)
+
+ID_TO_CLASS = {int(k): v for k, v in id_to_class_raw.items()}
 
 
 def encode_battery_status(status):
-    status = str(status).lower()
+    status = str(status).lower().strip()
 
     if status == "low":
         return 0
@@ -81,7 +93,7 @@ def select_movable_events(events, max_events=3):
     if not events:
         return []
 
-    movable = []
+    movable_events = []
 
     for event in events:
         is_movable = event.get("isMovable", False)
@@ -93,9 +105,9 @@ def select_movable_events(events, max_events=3):
             duration = 0
 
         if is_movable or duration >= 60:
-            movable.append(event)
+            movable_events.append(event)
 
-    return movable[:max_events]
+    return movable_events[:max_events]
 
 
 def extract_features(ai_payload):
@@ -108,7 +120,7 @@ def extract_features(ai_payload):
 
     max_free_slot_minutes = max(
         [slot["durationMinutes"] for slot in free_slots],
-        default=0
+        default=0,
     )
 
     movable_events_count = len(movable_events)
@@ -129,6 +141,29 @@ def extract_features(ai_payload):
     return features, free_slots, movable_events
 
 
+def rule_based_safety_override(ai_payload, recovery_strategy):
+    total_events = int(ai_payload.get("totalEvents", 0))
+    total_duration = float(ai_payload.get("totalDurationMinutes", 0))
+    battery_score = float(ai_payload.get("batteryScore", 50))
+    battery_status = str(ai_payload.get("batteryStatus", "medium")).lower().strip()
+
+    # Kasus penting:
+    # Kalau tidak ada event dan battery tinggi, jangan sampai dianggap jadwal padat.
+    if total_events == 0 and total_duration == 0 and battery_score >= 80:
+        return "LIGHT_RECOVERY"
+
+    if battery_status == "high" and battery_score >= 80:
+        return "LIGHT_RECOVERY"
+
+    if battery_status == "medium" and 50 <= battery_score < 80:
+        return "TAKE_BREAK"
+
+    if battery_status == "low" and battery_score < 50:
+        return "RESCHEDULE_ACTIVITY"
+
+    return recovery_strategy
+
+
 def predict_social_battery_response(ai_payload):
     features, free_slots, movable_events = extract_features(ai_payload)
 
@@ -140,11 +175,17 @@ def predict_social_battery_response(ai_payload):
     pred_prob = model.predict(input_scaled, verbose=0)[0]
 
     pred_idx = int(np.argmax(pred_prob))
-    recovery_strategy = label_classes[pred_idx]
+    recovery_strategy = ID_TO_CLASS[pred_idx]
     confidence = float(pred_prob[pred_idx])
+
+    recovery_strategy = rule_based_safety_override(
+        ai_payload,
+        recovery_strategy,
+    )
 
     ai_insight = get_ai_insight(ai_payload)
     ai_score_explanation = get_ai_score_explanation(ai_payload)
+
     recovery_suggestion = get_recovery_suggestion(
         ai_payload=ai_payload,
         recovery_strategy=recovery_strategy,
@@ -153,8 +194,9 @@ def predict_social_battery_response(ai_payload):
     )
 
     return {
-        "aiInsight": ai_insight,
-        "aiScoreExplanation": ai_score_explanation,
-        "recoverySuggestion": recovery_suggestion,
-        "aiModelName": "mlp-recovery-strategy-v2    "
-    }
+         "aiInsight": ai_insight,
+    "aiScoreExplanation": ai_score_explanation,
+    "recoverySuggestion": recovery_suggestion,
+    "aiModelName": "mlp-recovery-strategy-v3",
+        },
+    

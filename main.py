@@ -29,7 +29,7 @@ class SocialBatteryInput(BaseModel):
 def home():
     return {
         "message": "Social Battery AI Service is running",
-        "model": "mlp-recovery-strategy-v2"
+        "model": "mlp-recovery-strategy-v3"
     }
 
 

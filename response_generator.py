@@ -55,7 +55,7 @@ def get_take_break_activity():
 
 
 def normalize_battery_status(status):
-    status = str(status).lower()
+    status = str(status).lower().strip()
 
     if status == "low":
         return "LOW"
@@ -572,35 +572,61 @@ RECOVERY_SUGGESTION_RESCHEDULE = [
     ),
 ]
 
+RECOVERY_SUGGESTION_EMPTY_DAY = [
+    "Hari ini jadwalmu masih kosong, jadi energimu terlihat sangat aman. "
+    "Kamu bisa pakai waktu ini untuk hal ringan yang bikin nyaman, "
+    "atau sekadar menikmati hari tanpa terburu-buru. 🌿",
 
-RECOVERY_SUGGESTION_NO_SLOT = [
-    "Hari ini jadwalmu padat dan belum ada slot kosong yang cukup panjang. "
-    "Untuk sekarang, fokus saja pada hal yang paling penting, lalu beri dirimu waktu istirahat begitu ada kesempatan. 🌙",
+    "Belum ada agenda yang tercatat hari ini. "
+    "Social battery-mu masih penuh, jadi kamu punya ruang yang cukup luas "
+    "untuk beristirahat, melakukan hal yang kamu suka, atau menyiapkan diri pelan-pelan. ✨",
 
-    "Belum ada jeda besar yang bisa dipakai untuk recharge energimu. "
-    "Coba mulai dari hal kecil: kurangi respons yang tidak mendesak dan simpan energimu untuk aktivitas utama. 🤍",
+    "Hari ini belum ada aktivitas sosial yang masuk kalender. "
+    "Ini tanda bagus kalau energimu masih terjaga. "
+    "Manfaatkan harimu dengan santai dan tetap beri ruang buat diri sendiri. 🤍",
 
-    "Jadwalmu terlihat penuh, tapi kamu tetap bisa mengambil jeda kecil. "
-    "Tarik napas pelan selama beberapa menit di sela aktivitas, lalu lanjutkan satu per satu. 🍃",
+    "Sepertinya hari ini masih cukup kosong dari aktivitas sosial. "
+    "Energimu masih aman, jadi kamu bisa menjalaninya dengan lebih santai "
+    "tanpa merasa harus terburu-buru. 🍃",
 
-    "Hari ini memang cukup padat. "
-    "Karena belum ada waktu kosong yang ideal, coba hemat energi dengan menjaga interaksi tetap seperlunya. 🌿",
-
-    "Belum ada ruang besar untuk berhenti, tapi kamu tetap bisa melambat. "
-    "Kerjakan yang perlu dulu, dan izinkan dirimu beristirahat setelahnya. 🧸",
-
-    "Jadwalmu penuh, jadi fokusnya sekarang adalah menjaga sisa energi. "
-    "Kurangi hal yang tidak mendesak dan beri dirimu kesempatan pulih begitu memungkinkan. 🌙",
-
-    "Tidak ada slot kosong yang cukup untuk jeda panjang. "
-    "Coba ambil jeda kecil seperti minum air, diam sebentar, atau menjauh dari layar selama beberapa menit. 🤍",
-
-    "Hari ini mungkin terasa berat karena tidak banyak ruang kosong. "
-    "Tetap jalani perlahan, satu aktivitas dalam satu waktu, lalu prioritaskan istirahat setelahnya. 🍵",
-
-    "Karena belum ada slot istirahat yang cukup, pilihan terbaik adalah tidak menambah beban baru. "
-    "Simpan energimu dan beri dirimu waktu tenang di akhir hari. 🕯️",
+    "Belum ada jadwal yang masuk hari ini, jadi social battery-mu masih terlihat penuh. "
+    "Kalau mau, kamu bisa pakai waktu ini untuk melakukan hal kecil yang bikin kamu nyaman. 🌸",
 ]
+
+
+RECOVERY_SUGGESTION_HIGH_NO_SLOT = [
+    lambda **kw: (
+        f"Energimu masih cukup penuh dan jadwalmu belum terasa berat. "
+        f"Kalau mau, kamu bisa pakai waktu ini untuk {get_light_recovery_activities()} "
+        f"atau sekadar menikmati jeda tanpa tekanan. 🌿"
+    ),
+
+    lambda **kw: (
+        f"Social battery-mu masih aman. "
+        f"Tidak perlu recovery yang berat hari ini, cukup lakukan hal ringan seperti "
+        f"{get_light_recovery_activities()} supaya energimu tetap stabil. ✨"
+    ),
+
+    lambda **kw: (
+        f"Kondisimu masih cukup baik, jadi belum perlu mengurangi banyak hal. "
+        f"Kamu bisa tetap menjaga energi dengan aktivitas ringan seperti "
+        f"{get_light_recovery_activities()}. 🤍"
+    ),
+
+    lambda **kw: (
+        f"Energimu masih terasa stabil. "
+        f"Kalau ingin tetap nyaman sepanjang hari, kamu bisa menyisipkan hal ringan seperti "
+        f"{get_light_recovery_activities()} tanpa perlu memaksakan diri. 🍃"
+    ),
+
+    lambda **kw: (
+        f"Hari ini social battery-mu masih cukup kuat. "
+        f"Jadi cukup jaga ritme dengan hal-hal kecil yang menyenangkan, misalnya "
+        f"{get_light_recovery_activities()}. 🌸"
+    ),
+]
+
+
 
 
 
@@ -639,6 +665,20 @@ def get_ai_score_explanation(ai_payload):
 def get_recovery_suggestion(ai_payload, recovery_strategy, free_slots=None, movable_events=None):
     free_slots = free_slots or []
     movable_events = movable_events or []
+
+    total_events = int(ai_payload.get("totalEvents", 0))
+    total_duration = int(ai_payload.get("totalDurationMinutes", 0))
+    battery_score = float(ai_payload.get("batteryScore", 50))
+    battery_status = normalize_battery_status(ai_payload.get("batteryStatus", "medium"))
+
+    
+    if total_events == 0 and total_duration == 0:
+        return random.choice(RECOVERY_SUGGESTION_EMPTY_DAY)
+
+    
+    if battery_status == "HIGH" and battery_score >= 80 and len(free_slots) == 0:
+        template = random.choice(RECOVERY_SUGGESTION_HIGH_NO_SLOT)
+        return template()
 
     if recovery_strategy in ["LIGHT_RECOVERY", "TAKE_BREAK"] and len(free_slots) > 0:
         best_slot = max(free_slots, key=lambda x: x.get("durationMinutes", 0))
