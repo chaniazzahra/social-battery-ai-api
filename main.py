@@ -12,8 +12,17 @@ class CalendarEvent(BaseModel):
     title: str
     startTime: Optional[str] = None
     endTime: Optional[str] = None
-    durationMinutes: Optional[int] = 0
+
+    
+    durationMinutes: Optional[int] = None
+
+  
     isMovable: Optional[bool] = False
+
+    
+    attendeeCount: Optional[int] = 1
+    location: Optional[str] = None
+    eventType: Optional[str] = None
 
 
 class SocialBatteryInput(BaseModel):

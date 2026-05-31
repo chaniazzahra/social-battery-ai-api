@@ -89,26 +89,94 @@ def find_free_slots(events, min_gap_minutes=15):
     return free_slots
 
 
+def calculate_duration_minutes(start_time, end_time):
+    try:
+        start = pd.to_datetime(start_time, errors="coerce")
+        end = pd.to_datetime(end_time, errors="coerce")
+
+        if pd.isna(start) or pd.isna(end):
+            return 0
+
+        duration = int((end - start).total_seconds() / 60)
+        return max(duration, 0)
+    except Exception:
+        return 0
+
+
 def select_movable_events(events, max_events=3):
     if not events:
         return []
 
     movable_events = []
 
+    flexible_keywords = [
+        "rapat",
+        "meeting",
+        "diskusi",
+        "nugas",
+        "tugas",
+        "review",
+        "belajar",
+        "organisasi",
+        "capstone",
+        "revisi",
+        "project",
+        "kelompok",
+    ]
+
+    fixed_keywords = [
+        "kelas",
+        "kuliah",
+        "ujian",
+        "exam",
+        "bimbingan",
+        "sidang",
+        "presentasi",
+        "seminar",
+    ]
+
     for event in events:
+        title = str(event.get("title", "")).lower()
+        event_type = str(event.get("eventType", "")).lower()
+
         is_movable = event.get("isMovable", False)
 
-        duration = event.get("durationMinutes", 0)
+        duration = event.get("durationMinutes", None)
+
+        if duration is None:
+            duration = calculate_duration_minutes(
+                event.get("startTime", ""),
+                event.get("endTime", ""),
+            )
+
         try:
             duration = int(duration)
         except Exception:
             duration = 0
 
-        if is_movable or duration >= 60:
+        is_flexible_by_title = any(keyword in title for keyword in flexible_keywords)
+        is_fixed_by_title = any(keyword in title for keyword in fixed_keywords)
+
+        is_flexible_by_type = event_type in [
+            "meeting",
+            "task",
+            "assignment",
+            "discussion",
+            "organization",
+            "personal",
+        ]
+
+        if is_movable:
+            event["durationMinutes"] = duration
+            movable_events.append(event)
+
+        elif not is_fixed_by_title and (
+            duration >= 60 or is_flexible_by_title or is_flexible_by_type
+        ):
+            event["durationMinutes"] = duration
             movable_events.append(event)
 
     return movable_events[:max_events]
-
 
 def extract_features(ai_payload):
     events = ai_payload.get("events", [])
