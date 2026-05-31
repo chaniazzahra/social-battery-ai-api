@@ -147,8 +147,7 @@ def rule_based_safety_override(ai_payload, recovery_strategy):
     battery_score = float(ai_payload.get("batteryScore", 50))
     battery_status = str(ai_payload.get("batteryStatus", "medium")).lower().strip()
 
-    # Kasus penting:
-    # Kalau tidak ada event dan battery tinggi, jangan sampai dianggap jadwal padat.
+    
     if total_events == 0 and total_duration == 0 and battery_score >= 80:
         return "LIGHT_RECOVERY"
 
@@ -176,7 +175,6 @@ def predict_social_battery_response(ai_payload):
 
     pred_idx = int(np.argmax(pred_prob))
     recovery_strategy = ID_TO_CLASS[pred_idx]
-    confidence = float(pred_prob[pred_idx])
 
     recovery_strategy = rule_based_safety_override(
         ai_payload,
@@ -194,9 +192,8 @@ def predict_social_battery_response(ai_payload):
     )
 
     return {
-         "aiInsight": ai_insight,
-    "aiScoreExplanation": ai_score_explanation,
-    "recoverySuggestion": recovery_suggestion,
-    "aiModelName": "mlp-recovery-strategy-v3",
-        },
-    
+        "aiInsight": ai_insight,
+        "aiScoreExplanation": ai_score_explanation,
+        "recoverySuggestion": recovery_suggestion if isinstance(recovery_suggestion, str) else None,
+        "aiModelName": "mlp-recovery-strategy-v3",
+    }

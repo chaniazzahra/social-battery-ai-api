@@ -672,14 +672,26 @@ def get_recovery_suggestion(ai_payload, recovery_strategy, free_slots=None, mova
     battery_score = float(ai_payload.get("batteryScore", 50))
     battery_status = normalize_battery_status(ai_payload.get("batteryStatus", "medium"))
 
-    
-    if total_events == 0 and total_duration == 0:
-        return random.choice(RECOVERY_SUGGESTION_EMPTY_DAY)
 
-    
+    if total_events == 0 and total_duration == 0:
+        template = random.choice(RECOVERY_SUGGESTION_EMPTY_DAY)
+        return template(
+            total_events=total_events,
+            total_duration=total_duration,
+            battery_score=battery_score,
+            battery_status=battery_status,
+        )
+
+
     if battery_status == "HIGH" and battery_score >= 80 and len(free_slots) == 0:
         template = random.choice(RECOVERY_SUGGESTION_HIGH_NO_SLOT)
-        return template()
+        return template(
+            total_events=total_events,
+            total_duration=total_duration,
+            battery_score=battery_score,
+            battery_status=battery_status,
+        )
+
 
     if recovery_strategy in ["LIGHT_RECOVERY", "TAKE_BREAK"] and len(free_slots) > 0:
         best_slot = max(free_slots, key=lambda x: x.get("durationMinutes", 0))
@@ -732,4 +744,11 @@ def get_recovery_suggestion(ai_payload, recovery_strategy, free_slots=None, mova
         template = random.choice(RECOVERY_SUGGESTION_RESCHEDULE)
         return template(move_text=move_text)
 
-    return random.choice(RECOVERY_SUGGESTION_NO_SLOT)
+  
+    template = random.choice(RECOVERY_SUGGESTION_NO_SLOT)
+    return template(
+        total_events=total_events,
+        total_duration=total_duration,
+        battery_score=battery_score,
+        battery_status=battery_status,
+    )
