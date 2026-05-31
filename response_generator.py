@@ -72,7 +72,21 @@ def format_time(dt):
         return datetime.fromisoformat(str(dt).replace("Z", "+00:00")).strftime("%H:%M")
     except Exception:
         return str(dt)
+def format_event_time_range(start_raw, end_raw):
+    start = format_time(start_raw)
+    end = format_time(end_raw)
 
+   
+    if not start or not end:
+        return None
+
+    if start == "00:00" and end == "00:00":
+        return None
+
+    if start == end:
+        return None
+
+    return f"{start}–{end}"
 
 
 
@@ -683,11 +697,14 @@ def get_recovery_suggestion(ai_payload, recovery_strategy, free_slots=None, mova
 
             for event in movable_events[:3]:
                 title = event.get("title", "aktivitas")
-                start = format_time(event.get("startTime", ""))
-                end = format_time(event.get("endTime", ""))
 
-                if start and end:
-                    titles.append(f"{title} ({start}–{end})")
+                time_range = format_event_time_range(
+                    event.get("startTime", ""),
+                    event.get("endTime", ""),
+                )
+
+                if time_range:
+                    titles.append(f"{title} ({time_range})")
                 else:
                     titles.append(title)
 
