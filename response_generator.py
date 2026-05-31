@@ -672,46 +672,53 @@ def get_recovery_suggestion(ai_payload, recovery_strategy, free_slots=None, mova
     battery_score = float(ai_payload.get("batteryScore", 50))
     battery_status = normalize_battery_status(ai_payload.get("batteryStatus", "medium"))
 
-
+    
     if total_events == 0 and total_duration == 0:
-        template = random.choice(RECOVERY_SUGGESTION_EMPTY_DAY)
-        return template(
-            total_events=total_events,
-            total_duration=total_duration,
-            battery_score=battery_score,
-            battery_status=battery_status,
+        return random.choice(RECOVERY_SUGGESTION_EMPTY_DAY)
+
+
+    if battery_status == "LOW" or battery_score < 50 or recovery_strategy == "RESCHEDULE_ACTIVITY":
+        if len(movable_events) > 0:
+            titles = []
+
+            for event in movable_events[:3]:
+                title = event.get("title", "aktivitas")
+                start = format_time(event.get("startTime", ""))
+                end = format_time(event.get("endTime", ""))
+
+                if start and end:
+                    titles.append(f"{title} ({start}–{end})")
+                else:
+                    titles.append(title)
+
+            if len(titles) == 1:
+                move_text = titles[0]
+            elif len(titles) == 2:
+                move_text = f"{titles[0]} dan {titles[1]}"
+            else:
+                move_text = f"{titles[0]}, {titles[1]}, dan {titles[2]}"
+
+            template = random.choice(RECOVERY_SUGGESTION_RESCHEDULE)
+            return template(move_text=move_text)
+
+        
+        return (
+            f"Energimu sedang rendah, jadi hari ini sebaiknya kamu tidak memaksakan semua agenda berjalan seperti biasa. "
+            f"Kalau memungkinkan, coba pilih aktivitas yang paling penting dulu dan tunda atau ringankan agenda yang masih fleksibel. "
+            f"Sisakan waktu untuk benar-benar istirahat agar energimu bisa pulih pelan-pelan. 🤍"
         )
 
+   
+    if battery_status == "MEDIUM" or 50 <= battery_score < 80 or recovery_strategy == "TAKE_BREAK":
+        if len(free_slots) > 0:
+            best_slot = max(free_slots, key=lambda x: x.get("durationMinutes", 0))
 
-    if battery_status == "HIGH" and battery_score >= 80 and len(free_slots) == 0:
-        template = random.choice(RECOVERY_SUGGESTION_HIGH_NO_SLOT)
-        return template(
-            total_events=total_events,
-            total_duration=total_duration,
-            battery_score=battery_score,
-            battery_status=battery_status,
-        )
+            recovery_duration = min(30, int(best_slot.get("durationMinutes", 0)))
+            slot_start = format_time(best_slot.get("startTime", ""))
+            slot_end = format_time(best_slot.get("endTime", ""))
+            after_event = best_slot.get("afterEvent", "aktivitas sebelumnya")
+            before_event = best_slot.get("beforeEvent", "aktivitas berikutnya")
 
-
-    if recovery_strategy in ["LIGHT_RECOVERY", "TAKE_BREAK"] and len(free_slots) > 0:
-        best_slot = max(free_slots, key=lambda x: x.get("durationMinutes", 0))
-
-        recovery_duration = min(30, int(best_slot.get("durationMinutes", 0)))
-        slot_start = format_time(best_slot.get("startTime", ""))
-        slot_end = format_time(best_slot.get("endTime", ""))
-        after_event = best_slot.get("afterEvent", "aktivitas sebelumnya")
-        before_event = best_slot.get("beforeEvent", "aktivitas berikutnya")
-
-        if recovery_strategy == "LIGHT_RECOVERY":
-            template = random.choice(RECOVERY_SUGGESTION_LIGHT_RECOVERY)
-            return template(
-                slot_start=slot_start,
-                slot_end=slot_end,
-                after_event=after_event,
-                before_event=before_event,
-            )
-
-        if recovery_strategy == "TAKE_BREAK":
             template = random.choice(RECOVERY_SUGGESTION_TAKE_BREAK)
             return template(
                 slot_start=slot_start,
@@ -721,34 +728,39 @@ def get_recovery_suggestion(ai_payload, recovery_strategy, free_slots=None, mova
                 recovery_duration=recovery_duration,
             )
 
-    if recovery_strategy == "RESCHEDULE_ACTIVITY" and len(movable_events) > 0:
-        titles = []
+        return (
+            f"Energimu berada di tengah, jadi kamu masih bisa lanjut beraktivitas, tapi tetap perlu memberi jeda kecil untuk diri sendiri. "
+            f"Kalau memungkinkan, ambil waktu sebentar untuk {get_take_break_activity()} sebelum lanjut lagi. 🌙"
+        )
 
-        for event in movable_events[:3]:
-            title = event.get("title", "aktivitas")
-            start = format_time(event.get("startTime", ""))
-            end = format_time(event.get("endTime", ""))
+    
+    if battery_status == "HIGH" or battery_score >= 80 or recovery_strategy == "LIGHT_RECOVERY":
+        if len(free_slots) > 0:
+            best_slot = max(free_slots, key=lambda x: x.get("durationMinutes", 0))
 
-            if start and end:
-                titles.append(f"{title} ({start}–{end})")
-            else:
-                titles.append(title)
+            slot_start = format_time(best_slot.get("startTime", ""))
+            slot_end = format_time(best_slot.get("endTime", ""))
+            after_event = best_slot.get("afterEvent", "aktivitas sebelumnya")
+            before_event = best_slot.get("beforeEvent", "aktivitas berikutnya")
 
-        if len(titles) == 1:
-            move_text = titles[0]
-        elif len(titles) == 2:
-            move_text = f"{titles[0]} dan {titles[1]}"
-        else:
-            move_text = f"{titles[0]}, {titles[1]}, dan {titles[2]}"
+            template = random.choice(RECOVERY_SUGGESTION_LIGHT_RECOVERY)
+            return template(
+                slot_start=slot_start,
+                slot_end=slot_end,
+                after_event=after_event,
+                before_event=before_event,
+            )
 
-        template = random.choice(RECOVERY_SUGGESTION_RESCHEDULE)
-        return template(move_text=move_text)
+        template = random.choice(RECOVERY_SUGGESTION_HIGH_NO_SLOT)
+        return template(
+            total_events=total_events,
+            total_duration=total_duration,
+            battery_score=battery_score,
+            battery_status=battery_status,
+        )
 
-  
-    template = random.choice(RECOVERY_SUGGESTION_NO_SLOT)
-    return template(
-        total_events=total_events,
-        total_duration=total_duration,
-        battery_score=battery_score,
-        battery_status=battery_status,
+    
+    return (
+        f"Coba beri sedikit ruang untuk dirimu hari ini. "
+        f"Sesuaikan aktivitas dengan energi yang kamu punya, dan jangan ragu ambil jeda kalau mulai terasa berat. 🌿"
     )

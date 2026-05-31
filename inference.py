@@ -148,17 +148,20 @@ def rule_based_safety_override(ai_payload, recovery_strategy):
     battery_status = str(ai_payload.get("batteryStatus", "medium")).lower().strip()
 
     
-    if total_events == 0 and total_duration == 0 and battery_score >= 80:
-        return "LIGHT_RECOVERY"
+    if battery_status == "low" or battery_score < 50:
+        return "RESCHEDULE_ACTIVITY"
 
-    if battery_status == "high" and battery_score >= 80:
-        return "LIGHT_RECOVERY"
-
-    if battery_status == "medium" and 50 <= battery_score < 80:
+    
+    if battery_status == "medium" or 50 <= battery_score < 80:
         return "TAKE_BREAK"
 
-    if battery_status == "low" and battery_score < 50:
-        return "RESCHEDULE_ACTIVITY"
+   
+    if battery_status == "high" or battery_score >= 80:
+        return "LIGHT_RECOVERY"
+
+ 
+    if total_events == 0 and total_duration == 0:
+        return "LIGHT_RECOVERY"
 
     return recovery_strategy
 
